@@ -1,0 +1,64 @@
+{
+  "name": "M13: Self-Improvement",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "value": 1
+            }
+          ]
+        }
+      },
+      "name": "Nightly 2AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM dlq_events WHERE resolved_at IS NULL"
+      },
+      "name": "Analyze Failures",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "model": "llama3.1:8b",
+        "prompt": "Analyze these failures and suggest improvements: {{$json}}"
+      },
+      "name": "Ollama Reflection",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "improvement_reports",
+        "columns": "run_date,findings,recommendations",
+        "values": "={{new Date().toISOString()}},={{$json[\"findings\"]}},={{$json[\"recommendations\"]}}"
+      },
+      "name": "Store Report",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Nightly 2AM": {
+      "main": [[{ "node": "Analyze Failures", "type": "main", "index": 0 }]]
+    },
+    "Analyze Failures": {
+      "main": [[{ "node": "Ollama Reflection", "type": "main", "index": 0 }]]
+    },
+    "Ollama Reflection": {
+      "main": [[{ "node": "Store Report", "type": "main", "index": 0 }]]
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "M08: Email Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "email-trigger",
+        "options": {}
+      },
+      "name": "Event Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "no-reply@voiceos.ai",
+        "toEmail": "={{$json[\"payload\"][\"email\"]}}",
+        "subject": "={{$json[\"payload\"][\"subject\"]}}",
+        "html": "={{$json[\"payload\"][\"html_body\"]}}"
+      },
+      "name": "Send Email (SMTP)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "audit_logs",
+        "values": "M08,Email Sent,={{JSON.stringify($json)}}"
+      },
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Event Trigger": {
+      "main": [[{ "node": "Send Email (SMTP)", "type": "main", "index": 0 }]]
+    },
+    "Send Email (SMTP)": {
+      "main": [[{ "node": "Audit Log", "type": "main", "index": 0 }]]
+    }
+  }
+}

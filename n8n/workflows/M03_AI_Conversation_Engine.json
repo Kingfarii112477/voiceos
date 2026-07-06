@@ -1,0 +1,62 @@
+{
+  "name": "M03: AI Conversation Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "ai-engine-trigger",
+        "options": {}
+      },
+      "name": "HTTP Trigger (M02)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "model": "llama3.1:8b",
+        "prompt": "={{$json[\"payload\"][\"transcript\"]}}",
+        "systemPrompt": "You are a VoiceOS assistant. Use the provided context to respond naturally."
+      },
+      "name": "Ollama Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $node[\"Ollama Chat\"].json[\"response\"];\nconst intent = response.match(/INTENT: (\\w+)/)?.[1] || \"general\";\n\nreturn {\n  message_id: $node[\"HTTP Trigger (M02)\"].json[\"message_id\"],\n  source_module: \"M03\",\n  target_module: intent === \"booking\" ? \"M07\" : \"M09\",\n  payload: {\n    response_text: response,\n    intent: intent\n  }\n};"
+      },
+      "name": "Intent Router",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"target_module\"]}}",
+              "value2": "M07"
+            }
+          ]
+        }
+      },
+      "name": "Route to M07/M09",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "HTTP Trigger (M02)": {
+      "main": [[{ "node": "Ollama Chat", "type": "main", "index": 0 }]]
+    },
+    "Ollama Chat": {
+      "main": [[{ "node": "Intent Router", "type": "main", "index": 0 }]]
+    },
+    "Intent Router": {
+      "main": [[{ "node": "Route to M07/M09", "type": "main", "index": 0 }]]
+    }
+  }
+}

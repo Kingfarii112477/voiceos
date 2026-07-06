@@ -1,0 +1,69 @@
+{
+  "name": "M06: Knowledge Base",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "kb-trigger",
+        "options": {}
+      },
+      "name": "HTTP Trigger (M03)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://qdrant:6333/collections/knowledge_base/points/search",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "vector",
+              "value": "={{$json[\"payload\"][\"vector\"]}}"
+            },
+            {
+              "name": "limit",
+              "value": 3
+            }
+          ]
+        }
+      },
+      "name": "Qdrant Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  message_id: $node[\"HTTP Trigger (M03)\"].json[\"message_id\"],\n  source_module: \"M06\",\n  target_module: \"M03\",\n  payload: {\n    chunks: $node[\"Qdrant Search\"].json[\"result\"],\n    hit: $node[\"Qdrant Search\"].json[\"result\"].length > 0\n  }\n};"
+      },
+      "name": "Format RAG Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "audit_logs",
+        "values": "M06,KB Search,={{JSON.stringify($json)}}"
+      },
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "HTTP Trigger (M03)": {
+      "main": [[{ "node": "Qdrant Search", "type": "main", "index": 0 }]]
+    },
+    "Qdrant Search": {
+      "main": [[{ "node": "Format RAG Context", "type": "main", "index": 0 }]]
+    },
+    "Format RAG Context": {
+      "main": [[{ "node": "Audit Log", "type": "main", "index": 0 }]]
+    }
+  }
+}

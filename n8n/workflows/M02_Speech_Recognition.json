@@ -1,0 +1,65 @@
+{
+  "name": "M02: Speech Recognition",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "stt-trigger",
+        "options": {}
+      },
+      "name": "HTTP Trigger (M01)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://whisper-api:8000/transcribe",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "audio_blob",
+              "value": "={{$json[\"payload\"][\"audio_blob\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Whisper API Call",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  message_id: $node[\"HTTP Trigger (M01)\"].json[\"message_id\"],\n  timestamp: new Date().toISOString(),\n  source_module: \"M02\",\n  target_module: \"M03\",\n  payload: {\n    transcript: $node[\"Whisper API Call\"].json[\"text\"],\n    confidence: $node[\"Whisper API Call\"].json[\"confidence\"]\n  }\n};"
+      },
+      "name": "Format for M03",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "audit_logs",
+        "values": "M02,Transcription Complete,={{JSON.stringify($json)}}"
+      },
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "HTTP Trigger (M01)": {
+      "main": [[{ "node": "Whisper API Call", "type": "main", "index": 0 }]]
+    },
+    "Whisper API Call": {
+      "main": [[{ "node": "Format for M03", "type": "main", "index": 0 }]]
+    },
+    "Format for M03": {
+      "main": [[{ "node": "Audit Log", "type": "main", "index": 0 }]]
+    }
+  }
+}

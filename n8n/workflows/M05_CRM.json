@@ -1,0 +1,60 @@
+{
+  "name": "M05: CRM",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "crm-trigger",
+        "options": {}
+      },
+      "name": "HTTP Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "table": "contacts",
+        "columns": "phone,email,name,profile",
+        "updateKey": "phone"
+      },
+      "name": "Upsert Contact",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "crm_records",
+        "columns": "contact_id,status,notes"
+      },
+      "name": "Insert CRM Record",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "audit_logs",
+        "values": "M05,CRM Update,={{JSON.stringify($json)}}"
+      },
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "HTTP Trigger": {
+      "main": [[{ "node": "Upsert Contact", "type": "main", "index": 0 }]]
+    },
+    "Upsert Contact": {
+      "main": [[{ "node": "Insert CRM Record", "type": "main", "index": 0 }]]
+    },
+    "Insert CRM Record": {
+      "main": [[{ "node": "Audit Log", "type": "main", "index": 0 }]]
+    }
+  }
+}

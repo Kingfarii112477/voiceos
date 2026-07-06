@@ -1,0 +1,43 @@
+{
+  "name": "M14: Security",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "security-check",
+        "options": {}
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const token = $json[\"headers\"][\"authorization\"];\n// Simple JWT validation placeholder\nreturn { authorized: !!token };"
+      },
+      "name": "Validate JWT",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "audit_logs",
+        "values": "M14,Security Check,={{JSON.stringify($json)}}"
+      },
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{ "node": "Validate JWT", "type": "main", "index": 0 }]]
+    },
+    "Validate JWT": {
+      "main": [[{ "node": "Audit Log", "type": "main", "index": 0 }]]
+    }
+  }
+}

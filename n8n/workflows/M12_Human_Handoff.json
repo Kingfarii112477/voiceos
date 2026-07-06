@@ -1,0 +1,65 @@
+{
+  "name": "M12: Human Handoff",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "handoff-trigger",
+        "options": {}
+      },
+      "name": "Trigger (M03)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  message: \"Handoff requested for call \" + $json[\"call_id\"],\n  context: $json[\"payload\"]\n};"
+      },
+      "name": "Package Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://dashboard:3001/api/handoff",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "call_id",
+              "value": "={{$node[\"Trigger (M03)\"].json[\"call_id\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Notify Dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "audit_logs",
+        "values": "M12,Handoff Initiated,={{JSON.stringify($json)}}"
+      },
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Trigger (M03)": {
+      "main": [[{ "node": "Package Context", "type": "main", "index": 0 }]]
+    },
+    "Package Context": {
+      "main": [[{ "node": "Notify Dashboard", "type": "main", "index": 0 }]]
+    },
+    "Notify Dashboard": {
+      "main": [[{ "node": "Audit Log", "type": "main", "index": 0 }]]
+    }
+  }
+}

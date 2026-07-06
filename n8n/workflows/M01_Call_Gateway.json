@@ -1,0 +1,84 @@
+{
+  "name": "M01: Call Gateway",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "call-gateway",
+        "options": {}
+      },
+      "name": "LiveKit Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "m01-call-gateway"
+    },
+    {
+      "parameters": {
+        "jsCode": "const messageSchema = {\n  \"required\": [\"message_id\", \"timestamp\", \"source_module\", \"target_module\", \"payload\"],\n  // ... schema validation logic\n};\n\nreturn { \n  message_id: $node[\"LiveKit Webhook\"].json[\"call_id\"], \n  timestamp: new Date().toISOString(),\n  source_module: \"M01\",\n  target_module: \"M02\",\n  payload: $node[\"LiveKit Webhook\"].json\n};"
+      },
+      "name": "Validate & Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://whisper-api:8000/transcribe",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "audio_url",
+              "value": "={{$json[\"payload\"][\"audio_url\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Trigger M02 (STT)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": "public",
+        "table": "audit_logs",
+        "columns": "module,action,payload",
+        "values": "M01,Call Received,={{JSON.stringify($json)}}"
+      },
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": "public",
+        "table": "dlq_events",
+        "columns": "source_module,payload,error",
+        "values": "M01,={{JSON.stringify($node[\"LiveKit Webhook\"].json)}},={{$json[\"message\"]}}"
+      },
+      "name": "DLQ Insert",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [850, 500]
+    }
+  ],
+  "connections": {
+    "LiveKit Webhook": {
+      "main": [[{ "node": "Validate & Format", "type": "main", "index": 0 }]]
+    },
+    "Validate & Format": {
+      "main": [[{ "node": "Trigger M02 (STT)", "type": "main", "index": 0 }]]
+    },
+    "Trigger M02 (STT)": {
+      "main": [[{ "node": "Audit Log", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "errorWorkflow": "Global Error Handler"
+  }
+}

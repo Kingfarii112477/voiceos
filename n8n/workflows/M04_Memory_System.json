@@ -1,0 +1,55 @@
+{
+  "name": "M04: Memory System",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "memory-trigger",
+        "options": {}
+      },
+      "name": "HTTP Trigger (M03)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "={{$json[\"contact_id\"]}}"
+      },
+      "name": "Redis Read (Short-term)",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT messages FROM conversations WHERE contact_id = $1 ORDER BY created_at DESC LIMIT 5"
+      },
+      "name": "PG Read (Long-term)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  message_id: $node[\"HTTP Trigger (M03)\"].json[\"message_id\"],\n  source_module: \"M04\",\n  target_module: \"M03\",\n  payload: {\n    short_term: $node[\"Redis Read (Short-term)\"].json,\n    long_term: $node[\"PG Read (Long-term)\"].json\n  }\n};"
+      },
+      "name": "Merge Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "HTTP Trigger (M03)": {
+      "main": [[{ "node": "Redis Read (Short-term)", "type": "main", "index": 0 }]]
+    },
+    "Redis Read (Short-term)": {
+      "main": [[{ "node": "PG Read (Long-term)", "type": "main", "index": 0 }]]
+    },
+    "PG Read (Long-term)": {
+      "main": [[{ "node": "Merge Context", "type": "main", "index": 0 }]]
+    }
+  }
+}

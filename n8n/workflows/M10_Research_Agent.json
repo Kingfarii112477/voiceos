@@ -1,0 +1,56 @@
+{
+  "name": "M10: Research Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "research-trigger",
+        "options": {}
+      },
+      "name": "HTTP Trigger (M06)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "q": "={{$json[\"payload\"][\"query\"]}}"
+      },
+      "name": "DuckDuckGo Search",
+      "type": "n8n-nodes-base.duckDuckGo",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "model": "llama3.1:8b",
+        "prompt": "Summarize these search results: {{$json}}"
+      },
+      "name": "Ollama Summarizer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "audit_logs",
+        "values": "M10,Research Complete,={{JSON.stringify($json)}}"
+      },
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "HTTP Trigger (M06)": {
+      "main": [[{ "node": "DuckDuckGo Search", "type": "main", "index": 0 }]]
+    },
+    "DuckDuckGo Search": {
+      "main": [[{ "node": "Ollama Summarizer", "type": "main", "index": 0 }]]
+    },
+    "Ollama Summarizer": {
+      "main": [[{ "node": "Audit Log", "type": "main", "index": 0 }]]
+    }
+  }
+}

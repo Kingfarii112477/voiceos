@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VoiceOSInterModuleMessage",
+  "type": "object",
+  "required": ["message_id", "timestamp", "source_module", "target_module", "payload"],
+  "properties": {
+    "message_id": { "type": "string", "format": "uuid" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "source_module": { 
+      "type": "string", 
+      "enum": ["M01","M02","M03","M04","M05","M06","M07","M08","M09","M10","M11","M12","M13","M14","M15"] 
+    },
+    "target_module": { 
+      "type": "string", 
+      "enum": ["M01","M02","M03","M04","M05","M06","M07","M08","M09","M10","M11","M12","M13","M14","M15"] 
+    },
+    "call_id": { "type": "string" },
+    "contact_id": { "type": "string" },
+    "payload": { "type": "object" },
+    "priority": { "type": "string", "enum": ["low","normal","high","critical"], "default": "normal" },
+    "retry_count": { "type": "integer", "default": 0 }
+  }
+}

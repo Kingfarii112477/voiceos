@@ -1,0 +1,58 @@
+{
+  "name": "M07: Appointment Scheduler",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "scheduler-trigger",
+        "options": {}
+      },
+      "name": "HTTP Trigger (M03)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM appointments WHERE slot_start = $1 AND status != 'cancelled'"
+      },
+      "name": "Check Availability",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "appointments",
+        "columns": "contact_id,slot_start,slot_end,service,status"
+      },
+      "name": "Create Booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "audit_logs",
+        "values": "M07,Booking Created,={{JSON.stringify($json)}}"
+      },
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "HTTP Trigger (M03)": {
+      "main": [[{ "node": "Check Availability", "type": "main", "index": 0 }]]
+    },
+    "Check Availability": {
+      "main": [[{ "node": "Create Booking", "type": "main", "index": 0 }]]
+    },
+    "Create Booking": {
+      "main": [[{ "node": "Audit Log", "type": "main", "index": 0 }]]
+    }
+  }
+}
