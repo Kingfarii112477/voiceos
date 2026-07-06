@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0A0A0F;
+  --surface: #12121A;
+  --surface-hover: #1A1A24;
+  --accent: #6C63FF;
+  --accent-hover: #5A52E0;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A0A0B0;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --radius: 12px;
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.03);
+}
+
+body {
+  background: var(--background);
+  color: var(--text-primary);
+}
